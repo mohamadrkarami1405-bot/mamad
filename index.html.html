@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>مدل سه‌بعدی تصفیه‌خانه پساب پتروشیمی</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1b24;--panel:rgba(14,30,40,.88);--ink:#e6f1f2;--mute:#8fb0b6;--acc:#f0a437;--line:#25424d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--panel:rgba(255,255,255,.92);--ink:#10252d;--mute:#47666d;--acc:#b86a00;--line:#bfd3d6}}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Tahoma,sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hd{position:fixed;top:env(safe-area-inset-top,0px);right:0;left:0;padding:12px 16px;pointer-events:none}
+.hd h1{margin:0;font-size:1.15rem;color:#e6f1f2;text-shadow:0 1px 6px #000}
+.hd p{margin:2px 0 0;font-size:.8rem;color:#9fc0c6;text-shadow:0 1px 4px #000}
+#info{position:fixed;right:12px;top:calc(70px + env(safe-area-inset-top,0px));width:min(320px,calc(100% - 24px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;backdrop-filter:blur(6px);line-height:1.9;font-size:.88rem}
+#info h2{margin:0 0 4px;font-size:1.02rem;color:var(--acc)}
+#info .k{color:var(--mute)}
+#nav{position:fixed;left:0;right:0;bottom:0;padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;overflow-x:auto;background:linear-gradient(transparent,rgba(5,12,16,.85))}
+#nav button{flex:none;font:inherit;font-size:.78rem;color:#e6f1f2;background:rgba(20,40,50,.9);border:1px solid #2d4f5b;border-radius:16px;padding:6px 12px;cursor:pointer}
+#nav button.on{background:#f0a437;color:#1a1204;border-color:#f0a437;font-weight:700}
+#nav button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hd"><h1>تصفیه‌خانه صنعتی پساب پتروشیمی</h1><p>ظرفیت طراحی: ۱۵۰ مترمکعب بر ساعت در دو قطار موازی ۷۵ مترمکعبی (۳٬۶۰۰ مترمکعب در روز). بکشید تا بچرخد، با دو انگشت یا چرخ ماوس زوم کنید، روی هر واحد بزنید</p></div>
+<div id="info"></div>
+<div id="nav"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const U=[
+{n:"جداکننده API",t:"basin",c:0x6d7b80,w:"آبی تیره",d:"نخستین مرحله: روغن آزاد و هیدروکربن‌های سبک بر اثر اختلاف چگالی روی سطح جمع و با اسکیمر برداشته می‌شوند. رسوبات سنگین ته‌نشین می‌شوند.",r:"حذف ۶۰ تا ۹۰٪ روغن آزاد",s:"زمان ماند ۲۰ دقیقه، حجم حدود ۲۵ مترمکعب"},
+{n:"مخزن متعادل‌سازی",t:"tank",c:0x8a9a9f,w:"",d:"نوسان دبی و غلظت پساب واحدهای مختلف را یکنواخت می‌کند تا بخش‌های بعدی با بار پایدار کار کنند. با همزن یا هواده مخلوط می‌شود.",r:"یکنواخت‌سازی بار آلودگی",s:"زمان ماند ۶ ساعت، حجم حدود ۴۵۰ مترمکعب"},
+{n:"فلوتاسیون DAF",t:"daf",c:0x5f7f8a,w:"",d:"هوادهی DAF با سیستم ریسایکل تحت فشار (پرشر وسل): بخشی از پساب خروجی DAF با پمپ و هوای کمپرسور در مخزن تحت فشار اشباع می‌شود و با کاهش فشار در ورودی حوض حباب‌های ریز تولید می‌کند. این حباب‌ها روغن امولسیونی و ذرات را به سطح می‌برند. معمولاً همراه با منعقدکننده و لخته‌ساز.",x:"با تزریق حباب‌های ریز هوا، روغن امولسیونی و ذرات معلق به سطح می‌آیند و جمع‌آوری می‌شوند. معمولاً همراه با منعقدکننده و لخته‌ساز.",r:"حذف روغن امولسیونی و TSS",s:"بار سطحی ۷٫۵ مترمکعب بر مترمربع در ساعت، سطح حدود ۱۰ مترمربع، سیستم تحت فشار (پرشر وسل ۴ تا ۶ بار) با ریسایکل ۲۰٪ (۱۵ m³/h برای هر قطار)"},
+{n:"حوض هوادهی بیولوژیکی",t:"aer2",a:"محاسبه برای کل تصفیه‌خانه: با فرض COD ورودی ۱۰۰۰ و خروجی ۱۰۰ mg/L بار حذف‌شده حدود ۱۳۵ kg/h و نیاز اکسیژن COD حدود ۱۲۰ kg O2/h و با نیتریفیکاسیون آمونیاک (فرض ۴۰ mg/L NH4-N، حذف ۹۰٪، حدود ۲۵ kg O2/h و مصرف قلیائیت حدود ۳۹ kg CaCO3/h) در مجموع حدود ۱۴۶ kg O2/h است. با بازده انتقال میدانی حدود ۱۵٪ (عمق ۵ متر) هوای لازم حدود ۳۵۰۰ Nm3/h و با ضریب اطمینان ۲۰٪ حدود ۴۲۰۰ Nm3/h (۲۱۰۰ برای هر قطار) می‌شود. پیشنهاد: ایستگاه بلوئر مشترک: ۳ بلوئر (۱ فعال برای هر قطار + ۱ رزرو مشترک) هر کدام حدود ۲۱۰۰ Nm3/h با اینورتر، کنترل شده با پروب DO در محدوده ۱٫۵ تا ۲٫۵ mg/L",c:0x4f6b73,w:"",d:"فرایند لجن فعال با دیفیوزرهای دیسکی حباب ریز کف حوض که هوا را از بلوئر می‌گیرند و اکسیژن را با بازده بالا منتقل می‌کنند. راه‌اندازی با تلقیح لجن تازه فعال انجام می‌شود و در بهره‌برداری، لجن تازه تهنشین‌شده کلاریفایر با خط برگشت لجن (RAS) به حوض می‌رسد تا غلظت میکروب‌ها ثابت بماند. میکروب‌ها ترکیبات آلی محلول (COD و BOD) را مصرف می‌کنند.",x:"میکروارگانیسم‌های هوازی با کمک هوادهی، ترکیبات آلی محلول (COD و BOD) را مصرف می‌کنند. قلب فرایند تصفیه است.",r:"حذف ۸۰ تا ۹۵٪ COD",s:"MLSS حدود ۳۰۰۰ تا ۴۰۰۰ mg/L، برگشت لجن ۵۰ تا ۱۰۰٪ دبی (هر قطار ۳۸ تا ۷۵ m³/h)، زمان ماند ۱۶ ساعت، حجم حدود ۱۲۰۰ مترمکعب برای هر قطار"},
+{n:"کلاریفایر ثانویه",t:"clar",c:0x7d8d92,w:"",d:"لجن بیولوژیکی از پساب جدا می‌شود. بخشی از لجن به حوض هوادهی برمی‌گردد و مازاد آن به واحد آبگیری می‌رود.",r:"جداسازی لجن فعال",s:"بار سطحی ۰٫۷۵ متر بر ساعت، قطر حدود ۱۱٫۳ متر برای هر قطار"},
+{n:"راکتور بیوفیلم MBBR",t:"mbbr",c:0x4f7a6a,w:"",d:"مرحله پولیش بیولوژیکی جایگزین فیلتر شنی: مدیاهای پلاستیکی متحرک داخل حوض هوادهی شده، میکروب‌های چسبیده (بیوفیلم) را نگه می‌دارند که ترکیبات آلی مقاوم و نیتروژن را مصرف می‌کنند.",x:"می‌گیرد و کربن فعال، ترکیبات آلی مقاوم و رنگ و بو را جذب می‌کند.",r:"پولیش بیولوژیکی و حذف نیتروژن",s:"زمان ماند ۳ ساعت، حجم حدود ۲۲۵ مترمکعب برای هر قطار، پرشدگی مدیا ۴۰٪، هوادهی از ایستگاه بلوئر مشترک (هوای MBBR جدا از محاسبهٔ بلوئرهای حوض هوادهی است و باید اضافه شود)"},
+{n:"مخزن پساب تصفیه‌شده",t:"tank",c:0x3d8aa6,w:"",d:"پساب پس از گندزدایی و کنترل کیفیت ذخیره می‌شود تا برای استفادهٔ مجدد در برج‌های خنک‌کننده یا تخلیه مطابق استاندارد محیط‌زیست آماده باشد.",r:"تخلیه به دریا مطابق استانداردهای تخلیه",s:"زمان ماند ۲ ساعت، حجم حدود ۱۵۰ مترمکعب برای هر قطار"},
+{n:"آبگیری لجن (سانتریفیوژ)",t:"cent",c:0x7a6a4f,w:"",d:"واحد مشترک برای هر دو قطار. لجن مازاد دو کلاریفایر (و لجن DAF) با پلیمر مخلوط و وارد دکانتر سانتریفیوژ می‌شود. نیروی گریز از مرکز، کیک نیمه‌خشک را از فاز زلال (سانترات) جدا می‌کند. کیک به بین جمع‌آوری می‌رود و سانترات به ورودی تصفیه‌خانه برمی‌گردد.",r:"کیک با خشکی ۲۰ تا ۲۸٪",s:"دبی خوراک حدود ۵ تا ۸ مترمکعب بر ساعت (برآورد، وابسته به غلظت لجن)، مصرف پلیمر ۴ تا ۸ کیلوگرم بر تن ماده خشک"},
+{n:"پکیج شیمیایی (pH و انعقاد)",t:"chem",c:0x6b7b80,w:"",d:"واحد مشترک برای هر دو قطار: چهار مخزن با رنگ مجزا در حوضچه مهار نشت: اسید و سود برای تنظیم pH (با پروب و کنترلر، روی مخزن متعادل‌سازی)، منعقدکننده (PAC) و پلیمر (با همزن برای تهیه محلول) برای لخته‌سازی قبل از DAF. هر ماده پمپ دوزینگ جداگانه دارد. چهار خط تزریق (دو خط برای هر قطار) به مخزن متعادل‌سازی و DAF می‌رود.",r:"تنظیم pH روی ۶٫۵ تا ۸٫۵ و انعقاد ذرات",s:"PAC حدود ۵۰ تا ۱۵۰ mg/L (۸ تا ۲۳ kg/h)، پلیمر ۱ تا ۳ mg/L (۰٫۱۵ تا ۰٫۴۵ kg/h)، اسید و سود ۲۰ تا ۱۰۰ mg/L بسته به قلیائیت"}];
+const NM=7,G=11,X0=-(NM-1)*G/2;
+const cv=document.getElementById('c'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene();S.background=new THREE.Color(0x0d1b24);S.fog=new THREE.Fog(0x0d1b24,60,140);
+const cam=new THREE.PerspectiveCamera(50,1,.1,300);cam.position.set(8,44,74);
+const oc=new THREE.OrbitControls(cam,cv);oc.enableDamping=true;oc.maxPolarAngle=1.45;oc.target.set(10,1,0);
+S.add(new THREE.HemisphereLight(0xbfe3ff,0x1a2a30,.9));
+const sun=new THREE.DirectionalLight(0xffffff,.8);sun.position.set(20,40,15);S.add(sun);
+const gr=new THREE.Mesh(new THREE.PlaneGeometry(200,60),new THREE.MeshStandardMaterial({color:0x16282f}));gr.rotation.x=-Math.PI/2;S.add(gr);
+const gh=new THREE.GridHelper(200,100,0x28434d,0x1d333b);gh.position.y=.01;S.add(gh);
+const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.2},o));
+const water=()=>M(0x2f9fb8,{transparent:true,opacity:.85,roughness:.2});
+const rot=[],bub=[],units=[],ub=[],bls=[],ZA=-10,ZB=10;let ZO=ZA;
+function add(g,m,x,y,z){m.position.set(x,y,z);g.add(m);return m}
+function tx(t){const c=document.createElement('canvas');c.width=256;c.height=96;const x=c.getContext('2d');x.fillStyle='rgba(10,30,45,.85)';x.fillRect(0,0,256,96);x.fillStyle='#e6f1f2';x.font='bold 40px Vazirmatn,Tahoma,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,128,48);const p=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));p.scale.set(3.2,1.2,1);return p}
+function build(u,i){
+ const g=new THREE.Group();g.position.set(i<NM?X0+i*G:(i==NM?X0+4*G:X0+1.5*G),0,i<NM?ZO:0);g.userData.i=i;
+ const bm=M(u.c);let top=2;
+ if(u.t=="basin"||u.t=="daf"||u.t=="aer"){
+  const L=u.t=="aer"?9:7,W=u.t=="aer"?6:4.5,H=u.t=="aer"?2.6:2;top=H;
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(L,H,W),bm),0,H/2,0);
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(L-.5,.1,W-.5),water()),0,H+.01,0);
+  if(u.t=="basin"){const s=add(g,new THREE.Mesh(new THREE.BoxGeometry(L-.5,.15,.15),M(0xf0a437)),0,H+.2,0);s.userData.sk=1;rot.push(s);
+   add(g,new THREE.Mesh(new THREE.BoxGeometry(L-.5,.15,.15),M(0xf0a437)),0,H+.2,0).visible=false}
+  if(u.t=="daf"){for(let k=0;k<40;k++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),M(0xffffff,{emissive:0x335566}));b.position.set((Math.random()-.5)*(L-1),Math.random()*H,(Math.random()-.5)*(W-1));b.userData.s=.01+Math.random()*.02;g.add(b);bub.push([b,H])}
+   add(g,new THREE.Mesh(new THREE.BoxGeometry(L-.5,.25,.8),M(0xb0793a)),0,H+.2,0)}
+  if(u.t=="aer"){for(let k=-3;k<=3;k+=2)for(let z=-1.5;z<=1.5;z+=3){const a=add(g,new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.4,12),M(0xf0a437)),k*1.1,H+.15,z);}
+   for(let k=0;k<60;k++){const b=new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),M(0xffffff,{emissive:0x335566}));b.position.set((Math.random()-.5)*(L-1),Math.random()*H,(Math.random()-.5)*(W-1));b.userData.s=.015+Math.random()*.02;g.add(b);bub.push([b,H])}}
+ }else if(u.t=="tank"){
+  top=4.2;add(g,new THREE.Mesh(new THREE.CylinderGeometry(3,3,4.2,40),bm),0,2.1,0);
+  add(g,new THREE.Mesh(new THREE.ConeGeometry(3.1,.9,40),M(0x55666b)),0,4.65,0);
+  add(g,new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,3.8,8),M(0xaab)),3.1,2.1,0)
+  for(let y=.8;y<4;y+=1.1)add(g,new THREE.Mesh(new THREE.TorusGeometry(3.02,.04,6,40),M(0x2b3a3f)),0,y,0).rotation.x=Math.PI/2;
+ }else if(u.t=="clar"){
+  top=1.8;add(g,new THREE.Mesh(new THREE.CylinderGeometry(4,4,1.8,48),bm),0,.9,0);
+  add(g,new THREE.Mesh(new THREE.CylinderGeometry(3.7,3.7,.1,48),water()),0,1.82,0);
+  const a=new THREE.Group();a.position.y=2.1;add(a,new THREE.Mesh(new THREE.BoxGeometry(7.4,.15,.25),M(0xf0a437)),0,0,0);g.add(a);rot.push(a);
+  add(g,new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,2.6,16),M(0x55666b)),0,1.3,0);
+ }else if(u.t=="mbbr"){
+  top=3;add(g,new THREE.Mesh(new THREE.BoxGeometry(8,3,5.5),bm),0,1.5,0);
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(7.5,.1,5),water()),0,3.01,0);
+  for(let k=0;k<90;k++){const b=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.14,8),M(0xe8c15a,{emissive:0x4a3a10}));b.position.set((Math.random()-.5)*7,Math.random()*3,(Math.random()-.5)*4.6);b.userData.s=.008+Math.random()*.01;g.add(b);bub.push([b,3])}
+  for(const z of[-1.6,0,1.6])add(g,new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,7,8),M(0xf0a437)),0,3.2,z).rotation.z=Math.PI/2;
+ }else if(u.t=="aer2"){
+  const L=9,W=6,H=2.6;top=H;
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(L,.3,W),bm),0,.15,0);
+  for(const z of[-W/2+.15,W/2-.15])add(g,new THREE.Mesh(new THREE.BoxGeometry(L,H,.3),bm),0,H/2,z);
+  for(const x of[-L/2+.15,L/2-.15])add(g,new THREE.Mesh(new THREE.BoxGeometry(.3,H,W),bm),x,H/2,0);
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(L-.6,H-.5,W-.6),M(0x8a6a35,{transparent:true,opacity:.5,roughness:.3})),0,H/2+.15,0);
+  for(const x of[-3.5,-1.75,0,1.75,3.5])for(const z of[-1.8,0,1.8]){add(g,new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.08,16),M(0x111111)),x,.45,z);
+   for(let k=0;k<4;k++){const b=new THREE.Mesh(new THREE.SphereGeometry(.06,6,6),M(0xffffff,{emissive:0x446677}));b.position.set(x+(Math.random()-.5)*.4,.5+Math.random()*(H-.8),z+(Math.random()-.5)*.4);b.userData.s=.02+Math.random()*.02;g.add(b);bub.push([b,H-.2])}}
+  for(const x of[-3.5,0,3.5])add(g,new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,W,8),M(0xaabbcc)),x,H+.15,0).rotation.x=Math.PI/2;
+  
+  
+  const l1=tx('دیفیوزر');l1.position.set(0,H+1.6,0);g.add(l1);
+  
+  add(g,new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,2.2,8),M(0xcccccc)),2.5,H-.6,1.4);
+  add(g,new THREE.Mesh(new THREE.SphereGeometry(.2,12,12),M(0xff6a3a,{emissive:0x7a2a10})),2.5,H-1.7,1.4);
+  const l3=tx('پروب DO');l3.position.set(2.5,H+1.1,1.4);g.add(l3);
+  
+  
+  const sm=M(0x6fe0ff,{emissive:0x2aa7c9});
+  
+  
+  
+ }else if(u.t=="chem"){
+  top=3;add(g,new THREE.Mesh(new THREE.BoxGeometry(12,.3,5),M(0x3d4a4e)),0,.15,0);
+  [["اسید",0xd9534f],["سود",0x4a90d9],["منعقدکننده",0xb0b0b0],["پلیمر",0x4cae6f]].forEach(([t,c],k)=>{const x=-4.5+k*3;
+   add(g,new THREE.Mesh(new THREE.CylinderGeometry(1,1,2.6,24),M(c)),x,1.6,-.6);
+   add(g,new THREE.Mesh(new THREE.BoxGeometry(.7,.7,.7),M(c)),x,.65,1.8);
+   add(g,new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1.4,8),M(0xaab)),x,1.1,1.1).rotation.x=Math.PI/2;
+   const l=tx(t);l.position.set(x,4.4,-.6);g.add(l)});
+  const pd=new THREE.Group();pd.position.set(4.5,3.2,-.6);pd.add(new THREE.Mesh(new THREE.BoxGeometry(1.6,.08,.2),M(0xf0a437)));g.add(pd);rot.push(pd);
+ }else if(u.t=="cent"){
+  top=3;add(g,new THREE.Mesh(new THREE.BoxGeometry(7,.4,3.6),M(0x3d4a4e)),0,.2,0);
+  for(const x of[-1.3,1.3])add(g,new THREE.Mesh(new THREE.BoxGeometry(.4,1.2,1.6),M(0x55666b)),x,.9,0);
+  const A=new THREE.Group();A.position.set(0,1.9,0);A.rotation.z=Math.PI/2;g.add(A);
+  const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.95,.95,3.4,32),bm);A.add(bowl);
+  const cn=new THREE.Mesh(new THREE.CylinderGeometry(.95,.35,1.4,32),bm);cn.position.y=-2.4;bowl.add(cn);
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(.1,2.8,.3),M(0xf0a437));fin.position.x=.97;bowl.add(fin);rot.push(bowl,bowl,bowl);
+  add(g,new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,2,20),M(0x3d8aa6)),-4.8,1,1.8);
+  add(g,new THREE.Mesh(new THREE.BoxGeometry(2.2,1.2,2.2),M(0x4a5559)),4.8,.6,0);
+  add(g,new THREE.Mesh(new THREE.ConeGeometry(.9,.8,12),M(0x5b4326)),4.8,1.6,0);
+ }else if(u.t=="filt"){
+  top=5;for(const x of[-1.9,1.9]){const f=new THREE.Group();f.position.x=x;
+   add(f,new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,4.2,32),M(x<0?0xb08a52:0x2a2f31)),0,2.1,0);
+   add(f,new THREE.Mesh(new THREE.SphereGeometry(1.5,32,12,0,6.3,0,1.57),M(0x667a80)),0,4.2,0);
+   for(const y of[1,2,3.2])add(f,new THREE.Mesh(new THREE.TorusGeometry(1.52,.04,6,32),M(0x1e2a2e)),0,y,0).rotation.x=Math.PI/2;
+   g.add(f)}
+ }
+ g.traverse(o=>{if(o.isMesh)o.userData.g=g});g.userData.bm=bm;g.userData.top=top;
+ S.add(g);(ZO==ZB?ub:units).push(g);
+}
+U.forEach(build);ZO=ZB;U.slice(0,NM).forEach(build);
+// pipes + flow dots
+const pm=M(0x7fa3ad,{metalness:.5}),path=[];
+for(const zz of[ZA,ZB])for(let i=0;i<NM-1;i++){const a=X0+i*G+3.6,b=X0+(i+1)*G-3.6;
+ const p=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,b-a,12),pm);p.rotation.z=Math.PI/2;p.position.set((a+b)/2,1.2,zz);S.add(p);path.push([a,b,zz])}
+const dots=[];path.forEach(([a,b,zz])=>{for(let k=0;k<4;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.2,8,8),M(0x6fe0ff,{emissive:0x2aa7c9}));d.userData={a,b,zz,t:k/4};S.add(d);dots.push(d)}});
+// inlet/outlet markers
+const arrow=(x,c)=>{const m=new THREE.Mesh(new THREE.ConeGeometry(.6,1.4,16),M(c,{emissive:c,emissiveIntensity:.4}));m.rotation.z=-Math.PI/2;m.position.set(x,1.2,0);S.add(m)};
+arrow(X0-9,0x7a5a2a);arrow(-X0+5.2,0x3dd6a0);
+const hp=(x,z,l,rz)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,l,12),pm);if(rz)m.rotation.z=Math.PI/2;else m.rotation.x=Math.PI/2;m.position.set(x,1.2,z);S.add(m)};
+hp(-40.4,0,1.8,1);hp(-39.5,0,20,0);hp(-38,ZA,3,1);hp(-38,ZB,3,1);hp(38,ZA,4,1);hp(38,ZB,4,1);hp(40,0,20,0);
+const tl=(t,x,z,y)=>{const l=tx(t);l.scale.set(4.3,1.6,1);l.position.set(x,y,z);S.add(l)};
+tl('قطار ۱ (۵۰٪)',X0,ZA,5);tl('قطار ۲ (۵۰٪)',X0,ZB,5);tl('تقسیم ۵۰/۵۰',-39.5,0,3.5);
+const am=M(0xaad8f0,{metalness:.5});
+const ap=(x,y,z,l,ax)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,l,10),am);if(ax=='x')m.rotation.z=Math.PI/2;if(ax=='z')m.rotation.x=Math.PI/2;m.position.set(x,y,z);S.add(m)};
+ap(-3.5,2.75,0,6,'x');ap(-3.5,2.75,0,14,'z');
+for(const s of[-1,1]){ap(9.25,2.75,s*3.5,25.5,'x');ap(22,2.75,s*5.375,3.75,'z')}
+[[-6.5,'بلوئر ۱',0x2f8f7a],[-3.5,'بلوئر ۲',0x2f8f7a],[-.5,'رزرو',0x6a7f86]].forEach(([x,t,c])=>{
+ const b=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.1,1.4),M(c));b.position.set(x,.55,0);S.add(b);
+ const r=new THREE.Group();r.position.set(x,1.25,0);r.add(new THREE.Mesh(new THREE.BoxGeometry(1.2,.1,.25),M(0xf0a437)));S.add(r);if(c==0x2f8f7a)bls.push(r);
+ ap(x,1.925,0,1.65,'y');
+ const l=tx(t);l.position.set(x,3.7,0);S.add(l)});
+const vf=new THREE.Mesh(new THREE.BoxGeometry(1,1.6,.6),M(0x3d5a6a));vf.position.set(2.5,.8,0);S.add(vf);
+const vl=tx('اینورتر VFD');vl.position.set(2.5,2.5,0);S.add(vl);
+const sg=M(0x6fe0ff,{emissive:0x2aa7c9});
+[[-4.3,8.6],[5.7,11.4]].forEach(([z,l])=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,l,6),sg);m.rotation.x=Math.PI/2;m.position.set(2.5,3.3,z);S.add(m)});
+const ad=[],ad2=[];
+for(const s of[-1,1])for(let k=0;k<5;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.15,8,8),M(0xffffff,{emissive:0x88bbdd}));d.userData={s,t:k/5};d.position.set(-3.5,2.75,0);S.add(d);ad.push(d)}
+for(const s of[-1,1])for(let k=0;k<6;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.15,8,8),M(0xffffff,{emissive:0x88bbdd}));d.userData={s,t:k/6};d.position.set(-3.5,2.75,s*3.5);S.add(d);ad2.push(d)}
+for(const s of[-1,1]){const sp=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,4.2,12),M(0x8a6a3a,{metalness:.4}));sp.rotation.x=Math.PI/2;sp.position.set(X0+4*G,1.2,s*3.9);S.add(sp)}
+const sd=[];for(const s of[-1,1])for(let k=0;k<4;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.2,8,8),M(0xc79a55,{emissive:0x6a4a1a}));d.userData.t=k/4;d.userData.s=s;d.position.set(X0+4*G,1.2,s*6);S.add(d);sd.push(d)}
+const cd=[];[-1,1].forEach(s=>[[X0+G,s*6.7,s*2.5],[X0+2*G,s*7.6,s*2.5]].forEach(([x,z1,z2])=>{const p=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,Math.abs(z1-z2),8),M(0xd6a43a));p.rotation.x=Math.PI/2;p.position.set(x,1,(z1+z2)/2);S.add(p);for(let k=0;k<3;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.14,8,8),M(0xffd36a,{emissive:0x8a6a1a}));d.userData={z1,z2,t:k/3};d.position.set(x,1,z2);S.add(d);cd.push(d)}}));
+for(const s of[-1,1]){const rp=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,11,10),M(0x8a6a3a));rp.rotation.z=Math.PI/2;rp.position.set(5.5,.9,s*5.4);S.add(rp)}
+for(const s of[-1,1])for(const [x,z,l] of [[0,6.2,1.6],[11,5.7,.6]]){const q=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,l,10),M(0x8a6a3a));q.rotation.x=Math.PI/2;q.position.set(x,.9,s*z);S.add(q)}
+const rd=[];for(const s of[-1,1])for(let k=0;k<4;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.16,8,8),M(0xc79a55,{emissive:0x6a4a1a}));d.userData.t=k/4;d.position.set(11,.9,s*5.4);S.add(d);rd.push(d)}
+for(const s of[-1,1]){const rl=tx('لجن برگشتی');rl.position.set(5.5,2.6,s*5.4);S.add(rl)}
+const pw=M(0x6fb0c8,{metalness:.5}),dq=[];
+const pq=(x,y,z,l,ax,m)=>{const q=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,l,10),m);if(ax=='x')q.rotation.z=Math.PI/2;if(ax=='z')q.rotation.x=Math.PI/2;q.position.set(x,y,z);S.add(q)};
+for(const s of[-1,1]){const zz=s*15.5;
+ const v=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,3,24),M(0x9aa9ae,{metalness:.6,roughness:.4}));v.position.set(-11,1.5,zz);S.add(v);
+ const dm=new THREE.Mesh(new THREE.SphereGeometry(.8,24,12,0,6.3,0,1.57),M(0x9aa9ae,{metalness:.6}));dm.position.set(-11,3,zz);S.add(dm);
+ const cp=new THREE.Mesh(new THREE.BoxGeometry(1.2,1,1.2),M(0xd9822b));cp.position.set(-14,.5,zz);S.add(cp);
+ const pu=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.9,16),M(0x2f8f7a));pu.rotation.z=Math.PI/2;pu.position.set(-7.5,.5,zz);S.add(pu);
+ pq(-7.5,.5,s*13.875,3.25,'z',pw);pq(-8.85,.5,zz,2.7,'x',pw);pq(-12.6,.6,zz,1.6,'x',am);pq(-11,1.3,s*13.475,2.45,'z',pw);
+ for(const [t,x,y] of [['پرشر وسل',-11,4.8],['کمپرسور',-14,2],['پمپ ریسایکل',-7.5,1.8]]){const l=tx(t);l.position.set(x,y,zz);S.add(l)}
+ for(let k=0;k<3;k++)for(let j=0;j<3;j++){const d=new THREE.Mesh(new THREE.SphereGeometry(.13,8,8),M(0xffffff,{emissive:0x88bbdd}));d.userData={k:j,s,t:k/3};S.add(d);dq.push(d)}}
+const seaM=M(0x14577d,{transparent:true,opacity:.92,roughness:.25,metalness:.1});
+const beach=new THREE.Mesh(new THREE.BoxGeometry(6,.06,60),M(0xc9b27c));beach.position.set(47,.03,0);S.add(beach);
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(70,60),seaM);sea.rotation.x=-Math.PI/2;sea.position.set(85,.08,0);S.add(sea);
+const op=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,18,12),M(0x3d9a86,{metalness:.5}));op.rotation.z=Math.PI/2;op.position.set(49,1.2,0);S.add(op);
+const od1=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,3,12),M(0x3d9a86,{metalness:.5}));od1.position.set(58,0,0);S.add(od1);
+add(S,new THREE.Mesh(new THREE.SphereGeometry(.3,12,12),M(0x3d9a86)),58,1.2,0);
+const od=[];for(let k=0;k<5;k++){const d=new THREE.Mesh(new THREE.SphereGeometry(.2,8,8),M(0x3dd6a0,{emissive:0x1a9a70}));d.userData.t=k/5;d.position.set(36.2,1.2,0);S.add(d);od.push(d)}
+const rg=[];for(let k=0;k<3;k++){const r=new THREE.Mesh(new THREE.RingGeometry(.5,.7,32),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;r.position.set(58,.12,0);r.userData.t=k/3;S.add(r);rg.push(r)}
+const cvs=document.createElement('canvas');cvs.width=512;cvs.height=128;const cx=cvs.getContext('2d');cx.fillStyle='rgba(10,30,45,.85)';cx.fillRect(0,0,512,128);cx.fillStyle='#e6f1f2';cx.font='bold 40px Vazirmatn,Tahoma,sans-serif';cx.textAlign='center';cx.textBaseline='middle';cx.direction='rtl';cx.fillText('دریا (خروجی پساب تصفیه‌شده)',256,64);
+const lb=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cvs)}));lb.scale.set(14,3.5,1);lb.position.set(80,5,0);S.add(lb);
+// UI
+const info=document.getElementById('info'),nav=document.getElementById('nav');let sel=-1,tgt=new THREE.Vector3(0,1,0);
+function pick(i){sel=i;const u=U[i];
+ info.innerHTML=`<h2>${u.n}</h2><div>${u.d}</div><div><span class="k">عملکرد: </span>${u.r}</div><div><span class="k">${i<NM?'ابعاد هر قطار (۷۵ m³/h): ':'ابعاد (واحد مشترک): '}</span>${u.s}</div>${u.a?'<div><span class="k">هوادهی: </span>'+u.a+'</div>':''}${i==3?'<div><span class="k">DO زنده: </span><b id="dov">2.0</b> mg/L، <span class="k">دور بلوئر: </span><b id="bsp">70</b>٪</div>':''}<div><span class="k">مرحله: </span>${i<NM?(i+1)+' از '+NM:(i==NM?'خط جانبی لجن':'خط جانبی مواد شیمیایی')}</div>`;
+ [...nav.children].forEach((b,j)=>b.classList.toggle('on',j==i));
+ units.concat(ub).forEach(g=>{const j=g.userData.i;g.traverse(o=>{if(o.isMesh&&o.material.emissive&&!o.userData.keep)o.material.emissive.setHex(j==i?0x3a2a08:(o.userData.e||0))})});
+ tgt.set(units[i].position.x,1,0);cam.userData.goal=new THREE.Vector3(units[i].position.x,i<NM?20:14,i<NM?30:20)}
+U.forEach((u,i)=>{const b=document.createElement('button');b.textContent=u.n;b.onclick=()=>pick(i);nav.appendChild(b)});
+info.innerHTML=`<h2>مسیر پساب</h2><div>تصفیه‌خانه از دو قطار موازی ۵۰٪ (هر کدام ۷۵ مترمکعب بر ساعت) تشکیل شده است. پساب خام از سمت چپ وارد می‌شود و پس از ${NM} مرحله، پساب تصفیه‌شده به سمت دریا خارج می‌شود. ظرفیت ۱۵۰ مترمکعب بر ساعت است. ابعاد هر واحد با زمان ماند و بار سطحی معمول محاسبه شده و مدل سه‌بعدی مقیاس واقعی ندارد. یک واحد را انتخاب کنید.</div>`;
+const rc=new THREE.Raycaster(),mv=new THREE.Vector2();let dn=null;
+cv.addEventListener('pointerdown',e=>dn=[e.clientX,e.clientY]);
+cv.addEventListener('pointerup',e=>{if(!dn||Math.hypot(e.clientX-dn[0],e.clientY-dn[1])>5)return;
+ mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);rc.setFromCamera(mv,cam);
+ const h=rc.intersectObjects(units.concat(ub),true).find(x=>x.object.userData.g);if(h)pick(h.object.userData.g.userData.i)});
+function rs(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.position.z=innerWidth<700?Math.max(cam.position.z,60):cam.position.z;cam.updateProjectionMatrix()}
+addEventListener('resize',rs);rs();
+const rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+(function loop(){requestAnimationFrame(loop);
+ if(!rm){const tm=Date.now(),dv=2+.5*Math.sin(tm/2500),bs=Math.max(40,Math.min(100,70+(2-dv)*60));bls.forEach(b=>b.rotation.y+=bs/1000*1.2);dq.forEach(d=>{const u=d.userData;u.t=(u.t+.006)%1;if(u.k==0)d.position.set(-7.5,.5,u.s*(12.25+3.25*u.t));else if(u.k==1)d.position.set(-7.5-2.7*u.t,.5,u.s*15.5);else d.position.set(-11,1.3,u.s*(14.7-2.45*u.t))});ad.forEach(d=>{d.userData.t=(d.userData.t+.006)%1;d.position.z=d.userData.s*7*d.userData.t});ad2.forEach(d=>{d.userData.t=(d.userData.t+.004)%1;d.position.x=-3.5+25.5*d.userData.t});const e1=document.getElementById('dov');if(e1){e1.textContent=dv.toFixed(1);document.getElementById('bsp').textContent=Math.round(bs)}rd.forEach(d=>{d.userData.t=(d.userData.t+.004)%1;d.position.x=11-11*d.userData.t});cd.forEach(d=>{const u=d.userData;u.t=(u.t+.005)%1;d.position.z=u.z2+(u.z1-u.z2)*u.t});od.forEach(d=>{d.userData.t=(d.userData.t+.004)%1;d.position.x=40+18*d.userData.t});rg.forEach(r=>{r.userData.t=(r.userData.t+.006)%1;const s=1+r.userData.t*9;r.scale.set(s,s,s);r.material.opacity=.7*(1-r.userData.t)});sd.forEach(d=>{d.userData.t=(d.userData.t+.004)%1;d.position.z=d.userData.s*(6-4.2*d.userData.t)});rot.forEach(r=>{if(r.userData.sk)r.position.z=Math.sin(Date.now()/900)*1.8;else r.rotation.y+=.01});
+  bub.forEach(([b,H])=>{b.position.y+=b.userData.s*3;if(b.position.y>H)b.position.y=0});
+  dots.forEach(d=>{d.userData.t=(d.userData.t+.004)%1;d.position.set(d.userData.a+(d.userData.b-d.userData.a)*d.userData.t,1.2,d.userData.zz)})}
+ if(sel>=0&&cam.userData.goal){oc.target.lerp(tgt,.08);cam.position.lerp(cam.userData.goal,.05);if(cam.position.distanceTo(cam.userData.goal)<.3)cam.userData.goal=null}
+ oc.update();R.render(S,cam)})();
+</script>
+</body>
+</html>
